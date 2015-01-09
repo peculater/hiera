@@ -40,11 +40,7 @@ options = {
   :format => :ruby
 }
 
-initial_scope = {
-  :type  => nil,
-  :value => nil,
-  :name  => nil
-}
+initial_scopes = Array.new
 
 # Loads the scope from YAML or JSON files
 def load_scope(source, type=:yaml)
@@ -174,27 +170,19 @@ OptionParser.new do |opts|
   end
 
   opts.on("--json SCOPE", "-j", "JSON format file to load scope from") do |v|
-    initial_scope[:type]  = :json
-    initial_scope[:value] = v
-    initial_scope[:name]  = "JSON"
+    initial_scopes << { :type => :json, :value => v, :name => "JSON" }
   end
 
   opts.on("--yaml SCOPE", "-y", "YAML format file to load scope from") do |v|
-    initial_scope[:type]  = :yaml
-    initial_scope[:value] = v
-    initial_scope[:name]  = "YAML"
+    initial_scopes << { :type => :yaml, :value => v, :name => "YAML" }
   end
 
   opts.on("--mcollective IDENTITY", "-m", "Use facts from a node (via mcollective) as scope") do |v|
-    initial_scope[:type]  = :mcollective
-    initial_scope[:value] = v
-    initial_scope[:name]  = "Mcollective"
+    initial_scopes << { :type => :mcollective, :value => v, :name => "Mcollective" }
   end
 
   opts.on("--inventory_service IDENTITY", "-i", "Use facts from a node (via Puppet's inventory service) as scope") do |v|
-    initial_scope[:type]  = :inventory_service
-    initial_scope[:value] = v
-    initial_scope[:name]  = "Puppet inventory service"
+    initial_scopes << { :type => :inventory_service, :value => v, :name => "Puppet inventory service" }
   end
 
   opts.on("--format TYPE", "-f", "Output the result in a specific format (ruby, yaml or json); default is 'ruby'") do |v|
@@ -208,14 +196,16 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-if initial_scope[:type]
-  # Load initial scope
-  begin
-    options[:scope] = load_scope(initial_scope[:value], initial_scope[:type])
-  rescue Exception => e
-    STDERR.puts "Could not load #{initial_scope[:name]} scope: #{e.class}: #{e}"
-    exit 1
-  end
+unless initial_scopes.empty?
+  initial_scopes.each { |this_scope|
+    # Load initial scope
+    begin
+      options[:scope] = load_scope(this_scope[:value], this_scope[:type])
+    rescue Exception => e
+      STDERR.puts "Could not load #{this_scope[:name]} scope: #{e.class}: #{e}"
+      exit 1
+    end
+  }
 end
 
 # arguments can be:
